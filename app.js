@@ -43,15 +43,14 @@ async function passwordSignIn(){
   const email=loginEmail.value.trim().toLowerCase(),password=loginPassword.value;
   if(!email||!password){loginMessage.textContent='Enter the password.';return}
   passwordLoginBtn.disabled=true;loginMessage.textContent='Signing in…';
-  let {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error && /invalid login credentials/i.test(error.message||'')){
-    loginMessage.textContent='Setting up GTL account for first use…';
-    const signup=await sb.auth.signUp({email,password,options:{emailRedirectTo:'https://pariyuvi-blip.github.io/gtl-fleet-manager/'}});
-    data=signup.data;error=signup.error;
-    if(!error && !data.session){loginMessage.textContent='Account created. Please confirm the one-time verification email, then return here and tap Sign In.';passwordLoginBtn.disabled=false;return}
-  }
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
   passwordLoginBtn.disabled=false;
-  if(error){loginMessage.textContent=error.message;return}
+  if(error){
+    if(/invalid login credentials/i.test(error.message||'')) loginMessage.textContent='Login failed. Check the password and make sure the email account has been confirmed.';
+    else loginMessage.textContent=error.message;
+    return;
+  }
+  loginMessage.textContent='';
   if(data?.session)await showApp(data.session);
 }
 async function initAuth(){
