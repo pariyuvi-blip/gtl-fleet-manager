@@ -1,0 +1,8 @@
+{
+  "name":"gtl-fleet-manager",
+  "version":"1.0.0",
+  "private":true,
+  "scripts":{"serve":"npx serve .","cap:init":"npx cap init GTL com.garudatransports.gtl","android":"npx cap add android","ios":"npx cap add ios","sync":"npx cap sync"},
+  "dependencies":{"@capacitor/core":"latest"},
+  "devDependencies":{"@capacitor/cli":"latest","@capacitor/android":"latest","@capacitor/ios":"latest"}
+}

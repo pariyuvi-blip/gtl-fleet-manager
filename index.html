@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f4c81" />
+  <title>GTL Fleet Manager</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="GTL" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>Garuda Transports & Logistics</h1>
+    <p>Fleet • Commission • Invoicing</p>
+  </div>
+  <button id="installBtn" class="secondary hidden">Install App</button>
+</header>
+
+<nav class="tabs" aria-label="Main navigation">
+  <button data-page="dashboard" class="active">Dashboard</button>
+  <button data-page="own">Own Vehicle</button>
+  <button data-page="commission">Commission</button>
+  <button data-page="invoices">Invoices</button>
+  <button data-page="customers">Customers</button>
+  <button data-page="settings">Backup</button>
+</nav>
+
+<main>
+  <section id="dashboard" class="page active">
+    <div class="cards">
+      <article class="card"><span>Own Trips</span><strong id="statOwn">0</strong></article>
+      <article class="card"><span>Commission Trips</span><strong id="statCommission">0</strong></article>
+      <article class="card"><span>Driver Pending</span><strong id="statPending">₹0</strong></article>
+      <article class="card"><span>Net Commission Income</span><strong id="statNet">₹0</strong></article>
+      <article class="card"><span>Invoices Generated</span><strong id="statInvoices">0</strong></article>
+    </div>
+    <div class="panel">
+      <h2>Recent Trips</h2>
+      <div id="recentTrips" class="list-empty">No trips yet.</div>
+    </div>
+  </section>
+
+  <section id="own" class="page">
+    <div class="panel">
+      <div class="section-head"><h2>Own Vehicle Trip</h2><span>Truck: <b>KA07AD0725</b></span></div>
+      <form id="ownForm" class="form-grid">
+        <input type="hidden" id="ownEditId" />
+        <label>Date<input id="ownDate" type="date" required /></label>
+        <label>Trip ID<input id="ownTripId" readonly placeholder="Auto-generated" /></label>
+        <label>Truck Number<input value="KA07AD0725" readonly /></label>
+        <label>From<input id="ownFrom" required /></label>
+        <label>To<input id="ownTo" required /></label>
+        <label>Customer<select id="ownCustomer"></select></label>
+        <label id="ownOtherCustomerWrap" class="hidden">Customer Name<input id="ownOtherCustomer" placeholder="Enter customer name" /></label>
+        <label>Freight ₹<input id="ownFreight" type="number" min="0" step="0.01" /></label>
+        <label>Payment Received By<select id="ownPaymentBy"><option value="">Select</option><option>Garuda</option><option>Parikshith Garuda</option><option>Sanjay Garuda</option><option>Parikshith</option><option>Sanjay</option></select></label>
+        <label>POD Received<select id="ownPod"><option>NO</option><option>YES</option><option>NA</option></select></label>
+        <label>Invoice Applicable<select id="ownInvoiceApplicable"><option>YES</option><option>NO</option></select></label>
+        <label>Invoice Generated<select id="ownInvoiceGenerated"><option>NO</option><option>YES</option><option>NA</option></select></label>
+        <label>Invoice Number<input id="ownInvoiceNumber" placeholder="Editable anytime" /></label>
+        <label class="wide">Remarks<textarea id="ownRemarks" rows="2"></textarea></label>
+        <div class="actions wide"><button type="submit">Save Trip</button><button type="button" class="secondary" id="ownClear">Clear</button></div>
+      </form>
+    </div>
+    <div class="panel"><div class="section-head"><h2>Own Vehicle Records</h2><input id="ownSearch" class="search" placeholder="Search trips..." /></div><div class="table-wrap"><table id="ownTable"></table></div></div>
+  </section>
+
+  <section id="commission" class="page">
+    <div class="panel">
+      <h2>Commission Business Trip</h2>
+      <form id="commissionForm" class="form-grid">
+        <input type="hidden" id="comEditId" />
+        <label>Date<input id="comDate" type="date" required /></label>
+        <label>Trip ID<input id="comTripId" readonly placeholder="Auto-generated" /></label>
+        <label>Trip No.<input id="comTripNo" /></label>
+        <label>Truck Number<input id="comTruck" required /></label>
+        <label>Driver Name<input id="comDriver" /></label>
+        <label>From<input id="comFrom" /></label>
+        <label>To<input id="comTo" /></label>
+        <label>Customer<select id="comCustomer"></select></label>
+        <label id="comOtherCustomerWrap" class="hidden">Customer Name<input id="comOtherCustomer" placeholder="Enter customer name" /></label>
+        <label>Paying to Driver ₹<input id="comPaying" class="calc" type="number" min="0" step="0.01" value="0" /></label>
+        <label>Paid So Far ₹<input id="comPaid" class="calc" type="number" min="0" step="0.01" value="0" /></label>
+        <label>Pending ₹<input id="comPending" readonly value="0.00" /></label>
+        <label>Customer Pays Us WO GST ₹<input id="comWoGst" class="calc" type="number" min="0" step="0.01" value="0" /></label>
+        <label>Customer Pays Us W GST ₹<input id="comWGst" type="number" min="0" step="0.01" value="0" /></label>
+        <label>Commission ₹<input id="comCommission" readonly value="0.00" /></label>
+        <label>Net Income ₹<input id="comNet" readonly value="0.00" /></label>
+        <label>POD Received<select id="comPod"><option>NO</option><option>YES</option><option>NA</option></select></label>
+        <label>Invoice Applicable<select id="comInvoiceApplicable"><option>YES</option><option>NO</option></select></label>
+        <label>Invoice Generated<select id="comInvoiceGenerated"><option>NO</option><option>YES</option><option>NA</option></select></label>
+        <label>Invoice Number<input id="comInvoiceNumber" placeholder="Editable anytime" /></label>
+        <label class="wide">Remarks<textarea id="comRemarks" rows="2"></textarea></label>
+        <div class="formula wide">Pending = Paying to Driver − Paid So Far • Commission = 10% × (WO GST − Paying to Driver) • Net Income = WO GST − Paying to Driver − Commission</div>
+        <div class="actions wide"><button type="submit">Save Trip</button><button type="button" class="secondary" id="comClear">Clear</button></div>
+      </form>
+    </div>
+    <div class="panel"><div class="section-head"><h2>Commission Records</h2><input id="comSearch" class="search" placeholder="Search trips..." /></div><div class="table-wrap"><table id="comTable"></table></div></div>
+  </section>
+
+  <section id="invoices" class="page">
+    <div class="panel">
+      <h2>Create Invoice</h2>
+      <p class="muted">Select a customer and eligible trips. Invoice number remains editable.</p>
+      <div class="form-grid">
+        <label>Customer<select id="invoiceCustomer"></select></label>
+        <label>Invoice Number<input id="invoiceNumber" placeholder="e.g. 009/26-27" /></label>
+        <label>Invoice Date<input id="invoiceDate" type="date" /></label>
+        <label>Tax Type<select id="invoiceTaxType"><option value="CGST_SGST">CGST 9% + SGST 9%</option><option value="IGST">IGST 18%</option><option value="NONE">No GST</option></select></label>
+      </div>
+      <h3>Eligible Trips</h3>
+      <div id="invoiceTripPicker" class="picker"></div>
+      <div class="actions"><button id="previewInvoice">Preview Invoice</button></div>
+    </div>
+    <div id="invoicePreview" class="invoice-preview hidden"></div>
+    <div id="invoicePreviewActions" class="actions hidden"><button id="printInvoice">Print / Save PDF</button><button id="markInvoice" class="secondary">Mark Selected Trips Generated</button></div>
+  </section>
+
+  <section id="customers" class="page">
+    <div class="panel">
+      <div class="section-head"><h2>Customer Master</h2><button id="addCustomerBtn" class="secondary">Add Customer</button></div>
+      <div id="customerCards" class="customer-grid"></div>
+      <form id="customerForm" class="form-grid hidden">
+        <input type="hidden" id="customerEditId" />
+        <label>Name<input id="customerName" required /></label>
+        <label>GSTIN<input id="customerGstin" /></label>
+        <label>State<input id="customerState" value="KARNATAKA" /></label>
+        <label>State Code<input id="customerStateCode" value="29" /></label>
+        <label class="wide">Address<textarea id="customerAddress" rows="2"></textarea></label>
+        <div class="actions wide"><button type="submit">Save Customer</button><button type="button" class="secondary" id="customerCancel">Cancel</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="settings" class="page">
+    <div class="panel">
+      <h2>Backup & Restore</h2>
+      <p class="muted">This build stores data on this device. Export backups regularly. A server database can be connected later using the included schema.</p>
+      <div class="actions"><button id="exportBtn">Export Backup</button><label class="file-btn secondary">Import Backup<input id="importInput" type="file" accept="application/json" hidden /></label><button id="clearAllBtn" class="danger">Clear All Data</button></div>
+    </div>
+  </section>
+</main>
+
+<footer>GTL Fleet Manager • PWA build</footer>
+<script src="app.js"></script>
+</body>
+</html>
