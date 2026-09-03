@@ -7,10 +7,44 @@ const DEFAULT_DATA={
   ], ownTrips:[], commissionTrips:[]
 };
 const GTL={gstin:'29NAQPK5772A1Z1',name:'Garuda Transports and Logistics (GTL)',proprietor:'ARCHANA G K',address:'Krishna kuteera, Ane Thota road, Near J P school, Nirvani layout, Sharada Devi Nagara, Tumku-572103',mobile:'9036930501',email:'garudatransportsandlogitics@gamil.com',hsn:'996511',bank:'KARNATAKA BANK',account:'0757202600002701',ifsc:'KARB0000757',branch:'TUMKUR'};
-let db=load(); let previewSelection=[];
+
+const SUPABASE_URL='https://lmxrblpznecrsxmwjlng.supabase.co';
+const SUPABASE_KEY='sb_publishable_eryH9fM_2Q_Gp4WCesCUHQ_NFeG6eME';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let db=loadLocal(); let previewSelection=[]; let currentSession=null; let cloudReady=false; let saveQueue=Promise.resolve();
 function clone(x){return JSON.parse(JSON.stringify(x))}
-function load(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));return x&&x.customers?x:clone(DEFAULT_DATA)}catch{return clone(DEFAULT_DATA)}}
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db));renderAll()}
+function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY));return x&&x.customers?x:clone(DEFAULT_DATA)}catch{return clone(DEFAULT_DATA)}}
+function setCloudStatus(text,state=''){if(!window.cloudStatus)return;cloudStatus.textContent=text;cloudStatus.className='cloud-status '+state}
+async function persistCloud(){
+  if(!currentSession||!cloudReady)return;
+  setCloudStatus('Saving…','syncing');
+  const {error}=await sb.from('app_state').update({data:clone(db),updated_at:new Date().toISOString(),updated_by:currentSession.user.id}).eq('id','main');
+  if(error){setCloudStatus('Save failed','error');console.error(error);alert('Cloud save failed. Please check your internet connection and try again.');throw error}
+  setCloudStatus('Saved','ok');
+}
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db));renderAll();if(currentSession&&cloudReady)saveQueue=saveQueue.then(persistCloud).catch(()=>{})}
+async function loadCloud(){
+  setCloudStatus('Loading…','syncing');
+  const {data:approval,error:approvalError}=await sb.from('approved_users').select('email,role').maybeSingle();
+  if(approvalError||!approval){await sb.auth.signOut();throw new Error('This email is not approved for GTL Fleet Manager.')}
+  const {data,error}=await sb.from('app_state').select('data').eq('id','main').single();
+  if(error)throw error;
+  if(data?.data?.customers)db=data.data;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(db));
+  cloudReady=true;setCloudStatus('Saved','ok');
+}
+function showLogin(message=''){document.body.classList.add('auth-locked');loginScreen.classList.remove('hidden');logoutBtn.classList.add('hidden');signedInUser.textContent='';if(message)loginMessage.textContent=message}
+async function showApp(session){
+  currentSession=session; cloudReady=false;
+  try{await loadCloud();document.body.classList.remove('auth-locked');loginScreen.classList.add('hidden');logoutBtn.classList.remove('hidden');signedInUser.textContent=session.user.email||'';resetOwn();resetCom();renderAll()}
+  catch(err){showLogin(err.message||'Unable to load GTL cloud data.');}
+}
+async function initAuth(){
+  sendLoginLink.onclick=async()=>{const email=loginEmail.value.trim().toLowerCase();if(!email)return;sendLoginLink.disabled=true;loginMessage.textContent='Sending secure login link…';const redirectTo='https://pariyuvi-blip.github.io/gtl-fleet-manager/';const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo,shouldCreateUser:true}});sendLoginLink.disabled=false;loginMessage.textContent=error?error.message:'Login link sent. Open the email on this device and tap the link.'};
+  logoutBtn.onclick=async()=>{await sb.auth.signOut();currentSession=null;cloudReady=false;showLogin('Signed out.');};
+  const {data:{session}}=await sb.auth.getSession();if(session)await showApp(session);else showLogin();
+  sb.auth.onAuthStateChange(async(event,session)=>{if(event==='SIGNED_IN'&&session&&session.access_token!==currentSession?.access_token)await showApp(session);if(event==='SIGNED_OUT'){currentSession=null;cloudReady=false;showLogin();}});
+}
 function today(){return new Date().toISOString().slice(0,10)}
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -66,4 +100,4 @@ clearAllBtn.onclick=()=>{if(confirm('Delete all trips and reset the app?')){db=c
 
 let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;installBtn.classList.remove('hidden')});installBtn.onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installBtn.classList.add('hidden')};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-resetOwn();resetCom();renderAll();
+initAuth();

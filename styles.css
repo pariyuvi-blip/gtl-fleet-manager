@@ -13,3 +13,12 @@ main{max-width:1450px;margin:0 auto;padding:14px}.page{display:none}.page.active
 @media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,1fr)}.customer-grid{grid-template-columns:1fr}.pick-row{grid-template-columns:28px 95px 1fr 110px}.pick-row .hide-mobile{display:none}}
 @media(max-width:560px){.topbar{padding:13px}.topbar h1{font-size:17px}.topbar p{font-size:11px}.cards{grid-template-columns:1fr 1fr;gap:8px}.card{padding:12px}.card strong{font-size:18px}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}.panel{padding:12px}.tabs{padding:8px}.tabs button{padding:9px 11px}.section-head .search{max-width:none}.invoice-preview{padding:12px}.invoice-preview .inv-meta{grid-template-columns:1fr}.invoice-preview .inv-meta>div+div{border-left:0;border-top:1px solid #333}.totals{width:100%}}
 @media print{body *{visibility:hidden}.invoice-preview,.invoice-preview *{visibility:visible}.invoice-preview{position:absolute;left:0;top:0;width:100%;max-width:none;border:0;margin:0;padding:10mm}.invoice-preview table{font-size:10px}.topbar,.tabs,footer{display:none}}
+
+/* Supabase authentication / cloud status */
+.auth-screen{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.auth-card{width:min(430px,100%);background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+.auth-card h2{margin:0 0 8px}.auth-card p{color:var(--muted);line-height:1.45}.auth-card button{width:100%;margin-top:12px}.auth-message{min-height:22px;margin-top:12px;font-size:13px;color:var(--muted)}
+.auth-locked>.topbar,.auth-locked>.tabs,.auth-locked>main,.auth-locked>footer{display:none}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.signed-user{font-size:12px;max-width:260px;overflow:hidden;text-overflow:ellipsis}.cloud-status{font-size:11px;font-weight:700;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.18)}
+.cloud-status.syncing{opacity:.7}.cloud-status.error{background:#fee2e2;color:#991b1b}.cloud-status.ok{background:#dcfce7;color:#166534}
+@media(max-width:560px){.top-actions{gap:5px}.signed-user{display:none}.cloud-status{font-size:10px}.top-actions button{padding:8px 9px}}

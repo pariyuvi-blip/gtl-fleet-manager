@@ -12,13 +12,23 @@
   <meta name="apple-mobile-web-app-title" content="GTL" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="auth-locked">
+<div id="loginScreen" class="auth-screen">
+  <div class="auth-card">
+    <h2>GTL Fleet Manager</h2>
+    <p>Sign in with an approved GTL email address. We will send a secure login link to your email.</p>
+    <label>Email<input id="loginEmail" type="email" value="garudatransportsandlogistics@gmail.com" autocomplete="email" /></label>
+    <button id="sendLoginLink" type="button">Send Login Link</button>
+    <div id="loginMessage" class="auth-message"></div>
+  </div>
+</div>
+
 <header class="topbar">
   <div>
     <h1>Garuda Transports & Logistics</h1>
     <p>Fleet • Commission • Invoicing</p>
   </div>
-  <button id="installBtn" class="secondary hidden">Install App</button>
+  <div class="top-actions"><span id="cloudStatus" class="cloud-status">Cloud</span><span id="signedInUser" class="signed-user"></span><button id="logoutBtn" class="secondary hidden">Sign Out</button><button id="installBtn" class="secondary hidden">Install App</button></div>
 </header>
 
 <nav class="tabs" aria-label="Main navigation">
@@ -140,13 +150,14 @@
   <section id="settings" class="page">
     <div class="panel">
       <h2>Backup & Restore</h2>
-      <p class="muted">This build stores data on this device. Export backups regularly. A server database can be connected later using the included schema.</p>
+      <p class="muted">Trips, customers and invoice status are saved to the shared GTL cloud database while you are signed in. Export remains available as an additional backup.</p>
       <div class="actions"><button id="exportBtn">Export Backup</button><label class="file-btn secondary">Import Backup<input id="importInput" type="file" accept="application/json" hidden /></label><button id="clearAllBtn" class="danger">Clear All Data</button></div>
     </div>
   </section>
 </main>
 
 <footer>GTL Fleet Manager • PWA build</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 </body>
 </html>
