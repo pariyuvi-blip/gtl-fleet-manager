@@ -10,9 +10,7 @@ addCustomerBtn.onclick=()=>{customerForm.reset();customerEditId.value='';custome
 window.editCustomer=id=>{const c=db.customers.find(x=>x.id===id);customerEditId.value=c.id;customerName.value=c.name;customerGstin.value=c.gstin;customerState.value=c.state;customerStateCode.value=c.stateCode;customerAddress.value=c.address;customerForm.classList.remove('hidden')};
 customerForm.onsubmit=async e=>{e.preventDefault();const id=customerEditId.value,payload={name:customerName.value.trim(),gstin:customerGstin.value.trim().toUpperCase()||null,state:customerState.value.trim().toUpperCase()||null,state_code:customerStateCode.value.trim()||null,address:customerAddress.value.trim()||null};const ok=await cloudWrite(async()=>{if(id)must(await sb.from('customers').update(payload).eq('id',id));else must(await sb.from('customers').insert(payload))});if(ok)customerForm.classList.add('hidden')};
 
-let dashboardRenderRetry=null;
-function renderDashboardWhenReady(){clearTimeout(dashboardRenderRetry);if(typeof window.renderGtlDashboard==='function'){window.renderGtlDashboard();return}dashboardRenderRetry=setTimeout(renderDashboardWhenReady,100)}
-function renderAll(){fillCustomerSelects();renderOwn(ownSearch?.value||'');renderCom(comSearch?.value||'');renderCustomers();renderDashboardWhenReady();if(document.getElementById('invoices').classList.contains('active'))renderInvoicePicker()}
+function renderAll(){fillCustomerSelects();renderOwn(ownSearch?.value||'');renderCom(comSearch?.value||'');renderCustomers();if(typeof window.renderGtlDashboard==='function'&&window.gtlAppReady)window.renderGtlDashboard();if(document.getElementById('invoices').classList.contains('active'))renderInvoicePicker()}
 
 exportBtn.onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gtl-backup-'+today()+'.json';a.click();URL.revokeObjectURL(a.href)};
 importInput.onchange=async e=>{alert('Cloud restore is temporarily disabled in v8 while normalized restore safeguards are being finalized. Export backup remains available.');e.target.value=''};
@@ -20,4 +18,4 @@ clearAllBtn.onclick=()=>alert('For safety, bulk cloud deletion is disabled in v8
 
 let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;installBtn.classList.remove('hidden')});installBtn.onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;installBtn.classList.add('hidden')};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-initAuth();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAuth,{once:true});else initAuth();
