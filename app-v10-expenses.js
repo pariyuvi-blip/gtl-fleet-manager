@@ -1,83 +1,17 @@
-// GTL v10 expense tracking
-(function(){
-  const expenseState={own:[],commission:[]};
-  const commonTypes=['Diesel','Toll','Driver Bata','Loading / Unloading','Repair / Maintenance','Parking','Food','Other'];
-  const commonPaidBy=['Garuda','Parikshith Garuda','Sanjay Garuda','Parikshith','Sanjay'];
-
-  function eesc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function emoney(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-  function uniq(a){return [...new Set(a.map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));}
-  function setList(id,values){let d=document.getElementById(id);if(!d){d=document.createElement('datalist');d.id=id;document.body.appendChild(d);}d.innerHTML=uniq(values).map(v=>`<option value="${eesc(v)}"></option>`).join('');}
-  function mapExpense(r){return{id:r.id,date:r.expense_date,tripId:r.trip_id||'',type:r.expense_type||'',amount:+r.amount||0,paidBy:r.paid_by||'',remarks:r.remarks||'',updatedAt:r.updated_at||r.created_at||''};}
-
-  async function loadExpenses(){
-    if(!currentSession||!cloudReady)return;
-    const [o,c]=await Promise.all([
-      sb.from('own_expenses').select('*').order('expense_date',{ascending:false}).order('created_at',{ascending:false}),
-      sb.from('commission_expenses').select('*').order('expense_date',{ascending:false}).order('created_at',{ascending:false})
-    ]);
-    if(o.error||c.error){console.error(o.error||c.error);return;}
-    expenseState.own=o.data.map(mapExpense);expenseState.commission=c.data.map(mapExpense);
-    renderExpenses();
-  }
-
-  function fillSuggestions(){
-    setList('ownExpenseTripHistory',(db.ownTrips||[]).map(r=>r.id));
-    setList('comExpenseTripHistory',(db.commissionTrips||[]).map(r=>r.id));
-    setList('expenseTypeHistory',[...commonTypes,...expenseState.own.map(r=>r.type),...expenseState.commission.map(r=>r.type)]);
-    setList('expensePaidByHistory',[...commonPaidBy,...expenseState.own.map(r=>r.paidBy),...expenseState.commission.map(r=>r.paidBy)]);
-  }
-
-  function resetExpense(kind){
-    const p=kind==='own'?'ownExp':'comExp';
-    document.getElementById(p+'EditId').value='';
-    document.getElementById(p+'Date').value=today();
-    document.getElementById(p+'TripId').value='';
-    document.getElementById(p+'Type').value='';
-    document.getElementById(p+'Amount').value='';
-    document.getElementById(p+'PaidBy').value='';
-    document.getElementById(p+'Remarks').value='';
-  }
-
-  function renderTable(kind){
-    const rows=expenseState[kind];
-    const table=document.getElementById(kind==='own'?'ownExpenseTable':'comExpenseTable');
-    const search=document.getElementById(kind==='own'?'ownExpenseSearch':'comExpenseSearch')?.value.toLowerCase()||'';
-    const filtered=rows.filter(r=>JSON.stringify(r).toLowerCase().includes(search));
-    table.innerHTML=`<thead><tr><th>Date</th><th>Trip ID</th><th>Expense</th><th>Amount</th><th>Paid By</th><th>Remarks</th><th></th></tr></thead><tbody>`+
-      filtered.map(r=>`<tr><td>${r.date}</td><td>${eesc(r.tripId)}</td><td>${eesc(r.type)}</td><td>${emoney(r.amount)}</td><td>${eesc(r.paidBy)}</td><td>${eesc(r.remarks)}</td><td><button class="small secondary" onclick="editExpense('${kind}','${r.id}')">Edit</button> <button class="small danger" onclick="deleteExpense('${kind}','${r.id}')">Delete</button></td></tr>`).join('')+`</tbody>`;
-    const total=filtered.reduce((s,r)=>s+r.amount,0);
-    const totalEl=document.getElementById(kind==='own'?'ownExpenseTotal':'comExpenseTotal');if(totalEl)totalEl.textContent=emoney(total);
-  }
-  function renderExpenses(){fillSuggestions();renderTable('own');renderTable('commission');}
-
-  async function saveExpense(kind){
-    const p=kind==='own'?'ownExp':'comExp',table=kind==='own'?'own_expenses':'commission_expenses';
-    const edit=document.getElementById(p+'EditId').value;
-    const type=document.getElementById(p+'Type').value.trim();
-    const amount=Number(document.getElementById(p+'Amount').value||0);
-    if(!type){alert('Enter expense type.');return;}
-    if(!(amount>0)){alert('Enter an expense amount greater than zero.');return;}
-    const payload={expense_date:document.getElementById(p+'Date').value,trip_id:document.getElementById(p+'TripId').value.trim()||null,expense_type:type,amount,paid_by:document.getElementById(p+'PaidBy').value.trim()||null,remarks:document.getElementById(p+'Remarks').value.trim()||null,created_by:currentSession.user.id};
-    const ok=await cloudWrite(async()=>{const q=edit?sb.from(table).update(payload).eq('id',edit):sb.from(table).insert(payload);must(await q);});
-    if(ok){await loadExpenses();resetExpense(kind);}
-  }
-
-  window.editExpense=(kind,id)=>{const r=expenseState[kind].find(x=>x.id===id);if(!r)return;const p=kind==='own'?'ownExp':'comExp';document.getElementById(p+'EditId').value=r.id;document.getElementById(p+'Date').value=r.date;document.getElementById(p+'TripId').value=r.tripId;document.getElementById(p+'Type').value=r.type;document.getElementById(p+'Amount').value=r.amount||'';document.getElementById(p+'PaidBy').value=r.paidBy;document.getElementById(p+'Remarks').value=r.remarks;document.querySelector(`[data-page="${kind==='own'?'ownExpense':'commissionExpense'}"]`).click();scrollTo({top:0,behavior:'smooth'});};
-  window.deleteExpense=async(kind,id)=>{if(!confirm('Delete this expense entry?'))return;const table=kind==='own'?'own_expenses':'commission_expenses';const ok=await cloudWrite(async()=>must(await sb.from(table).delete().eq('id',id)));if(ok)await loadExpenses();};
-
-  document.getElementById('ownExpenseForm').addEventListener('submit',e=>{e.preventDefault();saveExpense('own');});
-  document.getElementById('comExpenseForm').addEventListener('submit',e=>{e.preventDefault();saveExpense('commission');});
-  document.getElementById('ownExpenseClear').onclick=()=>resetExpense('own');
-  document.getElementById('comExpenseClear').onclick=()=>resetExpense('commission');
-  document.getElementById('ownExpenseSearch').oninput=()=>renderTable('own');
-  document.getElementById('comExpenseSearch').oninput=()=>renderTable('commission');
-
-  document.querySelectorAll('[data-page="ownExpense"],[data-page="commissionExpense"]').forEach(b=>b.addEventListener('click',loadExpenses));
-  sb.channel('gtl-expenses-v10')
-    .on('postgres_changes',{event:'*',schema:'public',table:'own_expenses'},loadExpenses)
-    .on('postgres_changes',{event:'*',schema:'public',table:'commission_expenses'},loadExpenses)
-    .subscribe();
-  resetExpense('own');resetExpense('commission');
-  setTimeout(loadExpenses,500);
+// GTL v10 expense tabs based on GTL expense sheets
+(()=>{
+const CATS=['Broker/Commission','CA/Office/Admin','Diesel','Driver Salary','FASTag/Toll','General','Labour/Loading','Miscellaneous','Repairs'];let own=[],com=[];
+const nav=document.querySelector('.tabs'),main=document.querySelector('main');
+const paid=p=>`<select id="${p}PaidBy" required><option value="">Select</option><option>Garuda</option><option>Parikshith</option><option>Sanjay</option><option>Other</option></select>`;
+nav.insertAdjacentHTML('beforeend','<button data-page="ownexpenses">Own Expense</button><button data-page="comexpenses">Commission Expense</button>');
+main.insertAdjacentHTML('beforeend',`<section id="ownexpenses" class="page"><div class="panel"><h2>Own Vehicle Expense</h2><form id="ownExpenseForm" class="form-grid"><label>Entry Count<input id="oeCount" readonly placeholder="Automatic"></label><label>Date<input id="oeDate" type="date" required></label><label>Paid By${paid('oe')}</label><label id="oeOtherWrap" class="hidden">Paid By - Other<input id="oeOther" placeholder="Enter name"></label><label>Category<select id="oeCategory" required><option value="">Select category</option>${CATS.map(x=>`<option>${x}</option>`).join('')}</select></label><label>Gross Amount ₹<input id="oeAmount" type="number" min="0" step="0.01" placeholder="Enter amount" required></label><label class="wide">Remarks<textarea id="oeRemarks" rows="2"></textarea></label><div class="actions wide"><button type="submit">Save Expense</button><button type="button" class="secondary" id="oeClear">Clear</button></div></form></div><div class="panel"><div class="section-head"><h2>Own Expense Records</h2><input id="oeSearch" class="search" placeholder="Search expenses..."></div><div class="table-wrap"><table id="oeTable"></table></div></div></section><section id="comexpenses" class="page"><div class="panel"><h2>Commission Business Expense</h2><form id="comExpenseForm" class="form-grid"><label>Entry Count<input id="ceCount" readonly placeholder="Automatic"></label><label>Date<input id="ceDate" type="date" required></label><label>Paid By${paid('ce')}</label><label id="ceOtherWrap" class="hidden">Paid By - Other<input id="ceOther" placeholder="Enter name"></label><label>Gross Amount ₹<input id="ceAmount" type="number" min="0" step="0.01" placeholder="Enter amount" required></label><label class="wide">Remarks<textarea id="ceRemarks" rows="2"></textarea></label><div class="actions wide"><button type="submit">Save Expense</button><button type="button" class="secondary" id="ceClear">Clear</button></div></form></div><div class="panel"><div class="section-head"><h2>Commission Expense Records</h2><input id="ceSearch" class="search" placeholder="Search expenses..."></div><div class="table-wrap"><table id="ceTable"></table></div></div></section>`);
+[...document.querySelectorAll('.tabs button')].forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===b.dataset.page));if(b.dataset.page==='invoices')renderInvoicePicker();if(['ownexpenses','comexpenses'].includes(b.dataset.page))loadExpenses()});
+function other(p){const s=document.getElementById(p+'PaidBy'),w=document.getElementById(p+'OtherWrap'),i=document.getElementById(p+'Other');w.classList.toggle('hidden',s.value!=='Other');i.required=s.value==='Other'}oePaidBy.onchange=()=>other('oe');cePaidBy.onchange=()=>other('ce');
+function reset(p){document.getElementById(p+'Date').value=today();document.getElementById(p+'Count').value='Assigned on save';document.getElementById(p+'PaidBy').value='';document.getElementById(p+'Other').value='';document.getElementById(p+'OtherWrap').classList.add('hidden');document.getElementById(p+'Amount').value='';document.getElementById(p+'Remarks').value='';if(p==='oe')oeCategory.value=''}
+async function loadExpenses(){if(!currentSession)return;const[a,b]=await Promise.all([sb.from('own_expenses').select('*').order('entry_count',{ascending:false}),sb.from('commission_expenses').select('*').order('entry_count',{ascending:false})]);if(a.error||b.error){console.error(a.error||b.error);return}own=a.data||[];com=b.data||[];render()}
+const who=r=>r.paid_by==='Other'?(r.paid_by_other||'Other'):r.paid_by;
+function render(){const oq=(oeSearch.value||'').toLowerCase(),cq=(ceSearch.value||'').toLowerCase(),of=own.filter(r=>JSON.stringify(r).toLowerCase().includes(oq)),cf=com.filter(r=>JSON.stringify(r).toLowerCase().includes(cq));oeTable.innerHTML='<thead><tr><th>Entry Count</th><th>Date</th><th>Paid By</th><th>Category</th><th>Gross Amount</th><th>Remarks</th></tr></thead><tbody>'+of.map(r=>`<tr><td>${r.entry_count}</td><td>${r.expense_date}</td><td>${esc(who(r))}</td><td>${esc(r.category)}</td><td>${money(r.gross_amount)}</td><td>${esc(r.remarks||'')}</td></tr>`).join('')+'</tbody>';ceTable.innerHTML='<thead><tr><th>Entry Count</th><th>Date</th><th>Paid By</th><th>Gross Amount</th><th>Remarks</th></tr></thead><tbody>'+cf.map(r=>`<tr><td>${r.entry_count}</td><td>${r.expense_date}</td><td>${esc(who(r))}</td><td>${money(r.gross_amount)}</td><td>${esc(r.remarks||'')}</td></tr>`).join('')+'</tbody>'}
+oeSearch.oninput=render;ceSearch.oninput=render;oeClear.onclick=()=>reset('oe');ceClear.onclick=()=>reset('ce');
+ownExpenseForm.onsubmit=async e=>{e.preventDefault();const r=await sb.from('own_expenses').insert({expense_date:oeDate.value,paid_by:oePaidBy.value,paid_by_other:oePaidBy.value==='Other'?oeOther.value.trim():null,category:oeCategory.value,gross_amount:+oeAmount.value||0,remarks:oeRemarks.value.trim()||null,created_by:currentSession.user.id});if(r.error){alert('Expense save failed: '+r.error.message);return}reset('oe');await loadExpenses();setCloudStatus('Saved','ok')};
+comExpenseForm.onsubmit=async e=>{e.preventDefault();const r=await sb.from('commission_expenses').insert({expense_date:ceDate.value,paid_by:cePaidBy.value,paid_by_other:cePaidBy.value==='Other'?ceOther.value.trim():null,gross_amount:+ceAmount.value||0,remarks:ceRemarks.value.trim()||null,created_by:currentSession.user.id});if(r.error){alert('Expense save failed: '+r.error.message);return}reset('ce');await loadExpenses();setCloudStatus('Saved','ok')};reset('oe');reset('ce');sb.channel('gtl-expenses-v10').on('postgres_changes',{event:'*',schema:'public',table:'own_expenses'},loadExpenses).on('postgres_changes',{event:'*',schema:'public',table:'commission_expenses'},loadExpenses).subscribe();
 })();
