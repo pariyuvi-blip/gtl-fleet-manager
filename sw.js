@@ -1,12 +1,5 @@
-const CACHE='gtl-v16';
+const CACHE='gtl-v17';
 const STATIC=['./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-180.png'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)))});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
-self.addEventListener('fetch',event=>{
-  const req=event.request,url=new URL(req.url);
-  if(req.mode==='navigate'||url.pathname.endsWith('.js')||url.pathname.endsWith('.css')||url.pathname.endsWith('/')){
-    event.respondWith(fetch(new Request(req,{cache:'no-store'})).catch(()=>caches.match(req)));
-    return;
-  }
-  event.respondWith(fetch(req).then(res=>{if(req.method==='GET'&&res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));}return res;}).catch(()=>caches.match(req)));
-});
+self.addEventListener('fetch',event=>{const req=event.request,url=new URL(req.url);if(req.mode==='navigate'||url.pathname.endsWith('.js')||url.pathname.endsWith('.css')||url.pathname.endsWith('/')){event.respondWith(fetch(new Request(req,{cache:'no-store'})).catch(()=>caches.match(req)));return;}event.respondWith(fetch(req).then(res=>{if(req.method==='GET'&&res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));}return res;}).catch(()=>caches.match(req)));});
