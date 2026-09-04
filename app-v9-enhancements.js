@@ -1,44 +1,12 @@
 // GTL v9 entry-speed enhancements: shared-history suggestions + blank numeric inputs
 (function(){
   function uniqueClean(values){return [...new Set(values.map(v=>String(v||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));}
-  function ensureList(inputId,listId,values){
-    const input=document.getElementById(inputId);if(!input)return;
-    let list=document.getElementById(listId);
-    if(!list){list=document.createElement('datalist');list.id=listId;document.body.appendChild(list);}
-    input.setAttribute('list',listId);
-    list.innerHTML=uniqueClean(values).map(v=>`<option value="${v.replace(/"/g,'&quot;')}"></option>`).join('');
-  }
-  function refreshHistorySuggestions(){
-    if(!window.db)return;
-    const allTrips=[...(db.ownTrips||[]),...(db.commissionTrips||[])];
-    const locations=[];allTrips.forEach(r=>{locations.push(r.from,r.to)});
-    ensureList('ownFrom','gtlLocationHistory',locations);
-    ensureList('ownTo','gtlLocationHistory',locations);
-    ensureList('comFrom','gtlLocationHistory',locations);
-    ensureList('comTo','gtlLocationHistory',locations);
-    ensureList('comTruck','gtlTruckHistory',(db.commissionTrips||[]).map(r=>r.truck));
-    ensureList('comDriver','gtlDriverHistory',(db.commissionTrips||[]).map(r=>r.driver));
-  }
-  function blankEntryNumbers(){
-    ['comPaying','comPaid','comWoGst','comWGst','ownFreight'].forEach(id=>{
-      const el=document.getElementById(id);if(el&&!el.dataset.gtlBlankReady){
-        el.dataset.gtlBlankReady='1';
-        if(el.value==='0'||el.value==='0.00')el.value='';
-        el.addEventListener('focus',()=>{if(el.value==='0'||el.value==='0.00'){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));}});
-      }
-    });
-  }
-  if(typeof renderAll==='function'){
-    const baseRenderAll=renderAll;
-    renderAll=function(){baseRenderAll();refreshHistorySuggestions();blankEntryNumbers();};
-  }
-  if(typeof resetCom==='function'){
-    const baseResetCom=resetCom;
-    resetCom=function(){baseResetCom();['comPaying','comPaid','comWoGst','comWGst'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});if(typeof calcCommission==='function')calcCommission();refreshHistorySuggestions();blankEntryNumbers();};
-  }
-  if(typeof resetOwn==='function'){
-    const baseResetOwn=resetOwn;
-    resetOwn=function(){baseResetOwn();const el=document.getElementById('ownFreight');if(el)el.value='';refreshHistorySuggestions();blankEntryNumbers();};
-  }
+  function ensureList(inputId,listId,values){const input=document.getElementById(inputId);if(!input)return;let list=document.getElementById(listId);if(!list){list=document.createElement('datalist');list.id=listId;document.body.appendChild(list);}input.setAttribute('list',listId);list.innerHTML=uniqueClean(values).map(v=>`<option value="${v.replace(/"/g,'&quot;')}"></option>`).join('');}
+  function refreshHistorySuggestions(){if(!window.db)return;const allTrips=[...(db.ownTrips||[]),...(db.commissionTrips||[])],locations=[];allTrips.forEach(r=>locations.push(r.from,r.to));ensureList('ownFrom','gtlLocationHistory',locations);ensureList('ownTo','gtlLocationHistory',locations);ensureList('comFrom','gtlLocationHistory',locations);ensureList('comTo','gtlLocationHistory',locations);ensureList('comTruck','gtlTruckHistory',(db.commissionTrips||[]).map(r=>r.truck));ensureList('comDriver','gtlDriverHistory',(db.commissionTrips||[]).map(r=>r.driver));}
+  function blankEntryNumbers(){['comPaying','comPaid','comWoGst','comWGst','ownFreight'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.gtlBlankReady){el.dataset.gtlBlankReady='1';if(el.value==='0'||el.value==='0.00')el.value='';el.addEventListener('focus',()=>{if(el.value==='0'||el.value==='0.00'){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));}});}});}
+  if(typeof renderAll==='function'){const baseRenderAll=renderAll;renderAll=function(){baseRenderAll();refreshHistorySuggestions();blankEntryNumbers();};}
+  if(typeof resetCom==='function'){const baseResetCom=resetCom;resetCom=function(){baseResetCom();['comPaying','comPaid','comWoGst','comWGst'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});if(typeof calcCommission==='function')calcCommission();refreshHistorySuggestions();blankEntryNumbers();};}
+  if(typeof resetOwn==='function'){const baseResetOwn=resetOwn;resetOwn=function(){baseResetOwn();const el=document.getElementById('ownFreight');if(el)el.value='';refreshHistorySuggestions();blankEntryNumbers();};}
   refreshHistorySuggestions();blankEntryNumbers();
+  const s=document.createElement('script');s.src='app-v10-expenses.js?v=10';document.body.appendChild(s);
 })();
