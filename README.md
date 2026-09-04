@@ -1,49 +1,13 @@
-# GTL Fleet Manager
+# GTL Fleet Manager v8
 
-Responsive web/PWA fleet application for Garuda Transports and Logistics.
+Responsive PWA for Garuda Transports & Logistics.
 
-## Included now
-- Own Vehicle Tracking with fixed truck KA07AD0725
-- Commission Business Tracking
-- Auto Trip IDs
-- Editable Invoice Number in both modules
-- POD and invoice status fields
-- Customer master with SUNVIK and VAHINI starter records
-- Exact automatic calculations:
-  - Pending = Paying to Driver - Paid So Far
-  - Commission = 10% x (Customer Pays Us WO GST - Paying to Driver)
-  - Net Income = Customer Pays Us WO GST - Paying to Driver - Commission
-- Invoice builder based on the supplied GTL invoice structure
-- CGST+SGST / IGST / No-GST choices
-- Print / Save as PDF through browser print
-- Local persistent storage
-- JSON backup and restore
-- PWA install support
-- PostgreSQL/Supabase schema
-- Capacitor configuration for Android/iOS packaging
+## v8 cloud architecture
 
-## Run on a computer
-Do not double-click if you want install/offline features. Serve the folder over HTTP:
+The live app stores each customer and trip as an individual Supabase row in `customers`, `own_trips`, and `commission_trips`. This replaces the older whole-app `app_state` JSON save model and prevents unrelated records from being overwritten when two devices save at nearly the same time.
 
-    python -m http.server 8080
+Trip IDs are assigned by PostgreSQL sequences/triggers (`GTL-OWN-####` and `GTL-COM-####`). Commission values are database-generated: VAHINI gets 10% of positive margin; all other customers get zero commission. POD `NA` forces Invoice Applicable and Invoice Generated to `NA`.
 
-Then open http://localhost:8080
+Supabase Realtime refreshes other signed-in devices when customers or trips change. Local storage is now a cache/backup convenience, not the authoritative database.
 
-## Mobile use
-Open the hosted HTTPS version in Chrome/Safari and choose Add to Home Screen / Install App.
-
-## Native Android/iOS package
-Install Node.js, then run:
-
-    npm install
-    npx cap add android
-    npx cap add ios
-    npx cap sync
-
-Open the generated native project with Android Studio or Xcode.
-
-## Important current limitation
-This package is directly usable but stores operational data on the current browser/device. For multi-device synchronization, user login and WhatsApp automation, connect the UI to a hosted backend using `schema.sql`.
-
-## WhatsApp integration target
-Recommended flow: WhatsApp Business API webhook -> authenticated backend parser -> trip create/update by Trip ID -> database -> app refresh. API credentials are not included in this package.
+The app retains all six tabs: Dashboard, Own Vehicle, Commission, Invoices, Customers, and Backup.
