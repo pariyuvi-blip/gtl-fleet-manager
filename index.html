@@ -63,7 +63,7 @@
       <form id="ownForm" class="form-grid">
         <input type="hidden" id="ownEditId" />
         <label>Date<input id="ownDate" type="date" required /></label>
-        <label>Trip ID<input id="ownTripId" readonly placeholder="Auto-generated" /></label>
+        <label>Trip ID<input id="ownTripId" readonly placeholder="Assigned on save" /></label>
         <label>Truck Number<input value="KA07AD0725" readonly /></label>
         <label>From<input id="ownFrom" required /></label>
         <label>To<input id="ownTo" required /></label>
@@ -88,7 +88,7 @@
       <form id="commissionForm" class="form-grid">
         <input type="hidden" id="comEditId" />
         <label>Date<input id="comDate" type="date" required /></label>
-        <label>Trip ID<input id="comTripId" readonly placeholder="Auto-generated" /></label>
+        <label>Trip ID<input id="comTripId" readonly placeholder="Assigned on save" /></label>
         <label>Truck Number<input id="comTruck" required /></label>
         <label>Driver Name<input id="comDriver" /></label>
         <label>From<input id="comFrom" /></label>
@@ -107,7 +107,7 @@
         <label>Invoice Generated<select id="comInvoiceGenerated"><option>NO</option><option>YES</option><option>NA</option></select></label>
         <label>Invoice Number<input id="comInvoiceNumber" placeholder="Editable anytime" /></label>
         <label class="wide">Remarks<textarea id="comRemarks" rows="2"></textarea></label>
-        <div class="formula wide">Pending = Paying to Driver − Paid So Far • Commission = 10% × (WO GST − Paying to Driver) • Net Income = WO GST − Paying to Driver − Commission</div>
+        <div class="formula wide">Pending = Paying to Driver − Paid So Far • Commission = 10% of margin for VAHINI only; all other customers = ₹0 • Net Income = WO GST − Paying to Driver − Commission</div>
         <div class="actions wide"><button type="submit">Save Trip</button><button type="button" class="secondary" id="comClear">Clear</button></div>
       </form>
     </div>
@@ -160,6 +160,8 @@
 <footer>GTL Fleet Manager • PWA build</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
+<script src="app-v8-core.js"></script>
+<script src="app-v8-trips.js"></script>
+<script src="app-v8-extra.js"></script>
 </body>
 </html>
