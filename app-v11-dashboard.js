@@ -1,0 +1,59 @@
+// GTL v11 advanced dashboard: date-filtered own, commission and consolidated summaries
+(()=>{
+let dashOwnExpenses=[],dashComExpenses=[],dashLoading=false;
+const dash=document.getElementById('dashboard');
+if(!dash)return;
+
+dash.innerHTML=`
+<div class="panel">
+  <div class="section-head"><h2>Business Dashboard</h2><span id="dashPeriodLabel" class="muted">All time</span></div>
+  <div class="form-grid">
+    <label>From Date<input id="dashFrom" type="date"></label>
+    <label>To Date<input id="dashTo" type="date"></label>
+    <label>Quick Period<select id="dashQuick"><option value="all">All Time</option><option value="month">This Month</option><option value="lastmonth">Last Month</option><option value="fy">This Financial Year</option></select></label>
+    <div class="actions"><button type="button" id="dashApply">Apply</button><button type="button" class="secondary" id="dashClear">All Time</button></div>
+  </div>
+</div>
+<div id="dashContent"></div>`;
+
+function n(v){return Number(v||0)}
+function inRange(date){const f=dashFrom.value,t=dashTo.value;if(f&&date<f)return false;if(t&&date>t)return false;return true}
+function total(a,key){return a.reduce((s,r)=>s+n(typeof key==='function'?key(r):r[key]),0)}
+function countBy(a,keyFn,amountFn){const m={};a.forEach(r=>{const k=(keyFn(r)||'Unspecified').trim()||'Unspecified';m[k]=(m[k]||0)+n(amountFn(r))});return m}
+function metric(label,value){return `<article class="card"><span>${esc(label)}</span><strong>${typeof value==='number'?money(value):esc(value)}</strong></article>`}
+function countMetric(label,value){return `<article class="card"><span>${esc(label)}</span><strong>${Number(value||0).toLocaleString('en-IN')}</strong></article>`}
+function breakdown(title,map){const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);return `<div class="panel"><h3>${esc(title)}</h3>${rows.length?`<div class="table-wrap"><table><thead><tr><th>Paid By</th><th>Amount</th></tr></thead><tbody>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${money(v)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="list-empty">No expenses in selected period.</div>'}</div>`}
+function paymentBreakdown(a){return countBy(a,r=>r.paymentReceivedBy||'Not selected',r=>r.freight)}
+function categoryMap(a){return countBy(a,r=>r.category||'Uncategorised',r=>r.gross_amount)}
+function pieSvg(map){const rows=Object.entries(map).filter(([,v])=>v>0);const sum=rows.reduce((s,[,v])=>s+v,0);if(!sum)return '<div class="list-empty">No own-expense category data in selected period.</div>';let start=0;const cx=90,cy=90,r=72;const colors=['#0f4c81','#2f7db4','#5da5da','#86bddd','#f0a202','#f7c65a','#6a994e','#a7c957','#bc4749','#8d6e63'];const arcs=rows.map(([name,val],i)=>{const frac=val/sum,end=start+frac*2*Math.PI;const x1=cx+r*Math.sin(start),y1=cy-r*Math.cos(start),x2=cx+r*Math.sin(end),y2=cy-r*Math.cos(end),large=frac>.5?1:0;const d=frac>=.999999?`M ${cx} ${cy} m -${r} 0 a ${r} ${r} 0 1 0 ${2*r} 0 a ${r} ${r} 0 1 0 -${2*r} 0`:`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;start=end;return `<path d="${d}" fill="${colors[i%colors.length]}"><title>${esc(name)}: ${money(val)}</title></path>`}).join('');const legend=rows.map(([name,val],i)=>`<div style="display:flex;align-items:center;gap:8px;margin:6px 0"><span style="width:12px;height:12px;border-radius:3px;background:${colors[i%colors.length]};display:inline-block"></span><span>${esc(name)}</span><b style="margin-left:auto">${money(val)}</b></div>`).join('');return `<div style="display:grid;grid-template-columns:minmax(190px,240px) minmax(220px,1fr);gap:18px;align-items:center"><svg viewBox="0 0 180 180" style="width:100%;max-width:240px;margin:auto">${arcs}</svg><div>${legend}</div></div>`}
+function statusCounts(rows){return {podPending:rows.filter(r=>r.pod==='NO').length,invoicePending:rows.filter(r=>r.invoiceApplicable==='YES'&&r.invoiceGenerated!=='YES').length,invoices:rows.filter(r=>r.invoiceGenerated==='YES').length}}
+function periodLabel(){const f=dashFrom.value,t=dashTo.value;if(!f&&!t)return'All time';if(f&&t)return`${f} to ${t}`;return f?`From ${f}`:`Up to ${t}`}
+
+async function loadDashExpenses(){if(!currentSession||dashLoading)return;dashLoading=true;try{const[o,c]=await Promise.all([sb.from('own_expenses').select('expense_date,paid_by,paid_by_other,category,gross_amount'),sb.from('commission_expenses').select('expense_date,paid_by,paid_by_other,gross_amount')]);if(!o.error)dashOwnExpenses=o.data||[];if(!c.error)dashComExpenses=c.data||[];}finally{dashLoading=false}}
+function paidName(r){return r.paid_by==='Other'?(r.paid_by_other||'Other'):(r.paid_by||'Unspecified')}
+
+async function renderAdvancedDashboard(){await loadDashExpenses();const ownTrips=(db.ownTrips||[]).filter(r=>inRange(r.date)),comTrips=(db.commissionTrips||[]).filter(r=>inRange(r.date)),oe=dashOwnExpenses.filter(r=>inRange(r.expense_date)),ce=dashComExpenses.filter(r=>inRange(r.expense_date));
+ const ownFreight=total(ownTrips,'freight'),ownExp=total(oe,'gross_amount'),ownNet=ownFreight-ownExp,os=statusCounts(ownTrips);
+ const wo=total(comTrips,'customerWoGst'),wg=total(comTrips,'customerWGst'),pay=total(comTrips,'payingToDriver'),paid=total(comTrips,'paidSoFar'),pending=total(comTrips,'pending'),commission=total(comTrips,'commission'),tripNet=total(comTrips,'netIncome'),comExp=total(ce,'gross_amount'),comFinal=tripNet-comExp,cs=statusCounts(comTrips);
+ const totalExp=ownExp+comExp,combinedNet=ownNet+comFinal,grossInflow=ownFreight+wo;
+ dashPeriodLabel.textContent=periodLabel();
+ dashContent.innerHTML=`
+ <div class="panel"><h2>Own Vehicle Summary</h2><div class="cards">${countMetric('Own Trips',ownTrips.length)}${metric('Freight Revenue',ownFreight)}${metric('Own Expenses',ownExp)}${metric('Own Net After Expenses',ownNet)}${countMetric('POD Pending',os.podPending)}${countMetric('Invoice Pending',os.invoicePending)}${countMetric('Invoices Generated',os.invoices)}</div></div>
+ <div class="panel"><h3>Own Expense Category-wise</h3>${pieSvg(categoryMap(oe))}</div>
+ ${breakdown('Own Expense — Paid By',countBy(oe,paidName,r=>r.gross_amount))}
+ ${breakdown('Own Freight — Payment Received By',paymentBreakdown(ownTrips))}
+ <div class="panel"><h2>Commission Business Summary</h2><div class="cards">${countMetric('Commission Trips',comTrips.length)}${metric('Customer WO GST',wo)}${metric('Customer W GST',wg)}${metric('Paying to Drivers',pay)}${metric('Paid So Far',paid)}${metric('Driver Pending',pending)}${metric('Commission',commission)}${metric('Trip Net Income',tripNet)}${metric('Commission Expenses',comExp)}${metric('Final Commission Net',comFinal)}${countMetric('POD Pending',cs.podPending)}${countMetric('Invoice Pending',cs.invoicePending)}</div></div>
+ ${breakdown('Commission Expense — Paid By',countBy(ce,paidName,r=>r.gross_amount))}
+ <div class="panel"><h2>Consolidated Business Summary</h2><div class="cards">${countMetric('Total Trips',ownTrips.length+comTrips.length)}${metric('Gross Business Inflow',grossInflow)}${metric('Own Freight Revenue',ownFreight)}${metric('Commission Trip Net',tripNet)}${metric('Total Expenses',totalExp)}${metric('Combined Net Income',combinedNet)}${metric('Driver Pending',pending)}${countMetric('Total POD Pending',os.podPending+cs.podPending)}${countMetric('Total Invoice Pending',os.invoicePending+cs.invoicePending)}</div></div>
+ ${breakdown('Combined Expenses — Paid By',countBy([...oe,...ce],paidName,r=>r.gross_amount))}
+ <div class="panel"><h2>Expense Comparison</h2><div class="cards">${metric('Own Expenses',ownExp)}${metric('Commission Expenses',comExp)}${metric('Combined Expenses',totalExp)}</div></div>`;
+}
+
+function setQuick(v){const now=new Date(),y=now.getFullYear(),m=now.getMonth();let f='',t='';if(v==='month'){f=new Date(y,m,1).toISOString().slice(0,10);t=new Date(y,m+1,0).toISOString().slice(0,10)}else if(v==='lastmonth'){f=new Date(y,m-1,1).toISOString().slice(0,10);t=new Date(y,m,0).toISOString().slice(0,10)}else if(v==='fy'){const fyStart=m>=3?y:y-1;f=`${fyStart}-04-01`;t=`${fyStart+1}-03-31`}dashFrom.value=f;dashTo.value=t;renderAdvancedDashboard()}
+dashQuick.onchange=()=>setQuick(dashQuick.value);dashApply.onclick=renderAdvancedDashboard;dashClear.onclick=()=>{dashQuick.value='all';dashFrom.value='';dashTo.value='';renderAdvancedDashboard()};dashFrom.onchange=()=>{dashQuick.value='all'};dashTo.onchange=()=>{dashQuick.value='all'};
+
+if(typeof renderDashboard==='function')renderDashboard=()=>{renderAdvancedDashboard()};
+const dashboardBtn=document.querySelector('[data-page="dashboard"]');if(dashboardBtn)dashboardBtn.addEventListener('click',renderAdvancedDashboard);
+const ch=sb.channel('gtl-dashboard-v11').on('postgres_changes',{event:'*',schema:'public',table:'own_expenses'},()=>{dashOwnExpenses=[];renderAdvancedDashboard()}).on('postgres_changes',{event:'*',schema:'public',table:'commission_expenses'},()=>{dashComExpenses=[];renderAdvancedDashboard()}).subscribe();
+setTimeout(renderAdvancedDashboard,700);
+})();
