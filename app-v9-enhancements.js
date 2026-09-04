@@ -8,5 +8,4 @@
   if(typeof resetCom==='function'){const baseResetCom=resetCom;resetCom=function(){baseResetCom();['comPaying','comPaid','comWoGst','comWGst'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});if(typeof calcCommission==='function')calcCommission();refreshHistorySuggestions();blankEntryNumbers();};}
   if(typeof resetOwn==='function'){const baseResetOwn=resetOwn;resetOwn=function(){baseResetOwn();const el=document.getElementById('ownFreight');if(el)el.value='';refreshHistorySuggestions();blankEntryNumbers();};}
   refreshHistorySuggestions();blankEntryNumbers();
-  const s=document.createElement('script');s.src='app-v10-expenses.js?v=10';document.body.appendChild(s);
 })();
